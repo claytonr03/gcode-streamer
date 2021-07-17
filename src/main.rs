@@ -71,6 +71,20 @@ fn check_input(raw_input: &Vec<u8>) -> SerialReturnType {
     return input_type;
 }
 
+fn check_input_string(input_string: &str) -> SerialReturnType {
+    let re = Regex::new(r"(?i)\bok\b").unwrap();
+
+    let mut input_type = SerialReturnType::Unk;
+    
+    if re.is_match(input_string) {
+        input_type = SerialReturnType::Ok;
+    }
+
+
+    println!("Recv: {}", input_string);
+    return input_type;
+}
+
 // fn check_input(raw_input: String) -> SerialReturnType {
 //     // let input_string = String::from_utf8(raw_input);
 //     let input_type = SerialReturnType::Ok;
@@ -91,19 +105,28 @@ fn stream_file(filename: &str, port: &str, port_speed: u32) {
         .timeout(Duration::from_millis(10))
         .open().expect("Failed to open port");
 
+        let mut port = io::BufReader::new(port);
+
         loop{
             if let Some(fetched_line) = fetch_command(&mut f_iter){
                 // output_string(fetched_line);
-                let output = fetched_line.as_bytes();
-                port.write(output).expect("Write failed!");
+                println!("Send: {}", fetched_line);
+                let mut output = fetched_line;
+                output.push('\n');
+                port.get_mut().write(output.as_bytes()).expect("Write failed!");
+                port.get_mut().flush();
             }else{
                 println!("Reached EOF");
                 break;
             }
             
+            // let mut reader = io::BufReader::new(port);
+            let mut line = String::new();
             loop{
-                let ret = match port.read(serial_buf.as_mut_slice()){
-                    Ok(t) => check_input(&serial_buf),
+                // let ret = match port.read_line(serial_buf.as_mut_slice()){
+                let ret = match port.read_line(&mut line) {
+                // let ret = match port.read_to_end(&mut serial_buf){
+                    Ok(t) => check_input_string(&line),
                     Err(ref e) if e.kind() == io::ErrorKind::TimedOut => SerialReturnType::None,
                     Err(e) => serial_error(e),
                 };
@@ -184,7 +207,8 @@ fn output_string(line: String){
 
 fn main() {
 
-    stream_file("./test/test_square.gcode", "/tmp/ttyS0", 115200);
+    list_ports();
+    stream_file("./test/test_square.gcode", "/dev/ttyACM0", 115200);
     // let file_path = String::from("./test/test_square.gcode");
     // /* File opened OK*/
     // if let Ok(mut f_iter) = open_file(file_path){
