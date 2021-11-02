@@ -1,3 +1,8 @@
+static RELEASE_VERSION: &str = "0.1";
+
+extern crate clap;
+use clap::{Arg, App, SubCommand};
+
 use std::fs::File;
 use std::io::{self, BufRead};
 use std::{thread, time};
@@ -8,6 +13,8 @@ use std::time::Duration;
 use regex::Regex;
 
 use serialport::{available_ports, SerialPortType};
+
+
 
 /*
     SERIAL OPERATIONS
@@ -96,16 +103,24 @@ fn serial_error(err: std::io::Error) -> SerialReturnType {
     return SerialReturnType::Err;
 }
 
+fn open_port(port: &str, port_speed: u32) -> io::BufReader<Box<dyn serialport::SerialPort>> {
+    let mut port = serialport::new(port, port_speed)
+        .timeout(Duration::from_millis(10))
+        .open().expect("Failed to open port");
+
+    io::BufReader::new(port)
+}
+
 fn stream_file(filename: &str, port: &str, port_speed: u32) {
     if let Ok(mut f_iter) = open_file(filename){
         
         let mut serial_buf: Vec<u8> = vec![0; 32];
 
-        let mut port = serialport::new(port, port_speed)
-        .timeout(Duration::from_millis(10))
-        .open().expect("Failed to open port");
+        // let mut port = serialport::new(port, port_speed)
+        // .timeout(Duration::from_millis(10))
+        // .open().expect("Failed to open port");
 
-        let mut port = io::BufReader::new(port);
+        let mut port = open_port(port, port_speed);
 
         loop{
             if let Some(fetched_line) = fetch_command(&mut f_iter){
@@ -205,10 +220,58 @@ fn output_string(line: String){
     println!("{}", line);
 }
 
-fn main() {
+fn grbl_auto_connect() {
+    println!("GRBL auto-connect");
+}
 
-    list_ports();
-    stream_file("./test/test_square.gcode", "/dev/ttyACM0", 115200);
+fn main() {
+    //TODO: Use subcommands to tidy up input parsing
+    let matches = App::new("G-Code Streamer")
+                    .version(RELEASE_VERSION)
+                    .arg(Arg::with_name("grbl-auto-connect")
+                        .long("grbl-auto-connect")
+                        .help("Enables auto-connect for GRBL controllers (sends $X to unlock)"))
+                    .arg(Arg::with_name("input")
+                        .short("i")
+                        .long("input")
+                        .value_name("FILE")
+                        .help("Sets the input g-code file (required)")
+                        .takes_value(true))
+                    .arg(Arg::with_name("port")
+                        .short("p")
+                        .long("port")
+                        .value_name("PORT")
+                        .help("Sets the serial port the application will stream to")
+                        .takes_value(true))
+                    .arg(Arg::with_name("speed")
+                        .short("s")
+                        .long("speed")
+                        .value_name("BAUD RATE")
+                        .help("Sets the serial port baud rate")
+                        .takes_value(true))
+                    .arg(Arg::with_name("list-ports")
+                        .short("l")
+                        .long("list-ports")
+                        .help("List available serial ports"))
+                    .get_matches();
+
+    
+    if matches.is_present("list-ports") {
+        list_ports();
+    } else {
+        if matches.is_present("grbl-auto-connect") {
+            grbl_auto_connect();
+        }
+
+        if let Some(input_file) = matches.value_of("input") {
+            //TODO: poor handling of input, improve
+            let port = matches.value_of("port").expect("no port specified");
+            let speed = matches.value_of("speed").expect("no speed specified").parse::<u32>().unwrap();
+            stream_file(input_file, port, speed);     
+        }
+    }
+    // list_ports();
+    // stream_file("./test/test_square.gcode", "/dev/ttyACM0", 115200);
     // let file_path = String::from("./test/test_square.gcode");
     // /* File opened OK*/
     // if let Ok(mut f_iter) = open_file(file_path){
