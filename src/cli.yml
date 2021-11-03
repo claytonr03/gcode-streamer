@@ -1,0 +1,36 @@
+name: gcode-streamer
+version: "0.1"
+about: Stream a gcode file to a given serial port
+args:
+  - grbl-auto-connect:
+      long: grbl-auto-connect
+      help: enables the GRBL auto connect feature to unlock the machine (DANGER)
+  - list-ports:
+      long: list-ports
+      help: list available ports
+        
+subcommands:
+  - stream:
+      about: stream a file to the given port
+      args:
+        - input:
+            help: Set the input g-code file
+            required: true
+            value_name: FILE
+            long: input
+            short: i
+            takes_value: true
+        - port:
+            help: Set the serial port
+            required: true
+            value_name: PORT
+            long: port
+            short: p
+            takes_value: true
+        - speed:
+            help: Set the baud rate
+            required: true
+            value_name: SPEED
+            long: speed
+            short: s
+            takes_value: true

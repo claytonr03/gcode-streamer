@@ -1,7 +1,7 @@
-static RELEASE_VERSION: &str = "0.1";
 
+#[macro_use]
 extern crate clap;
-use clap::{Arg, App, SubCommand};
+use clap::App;
 
 use std::fs::File;
 use std::io::{self, BufRead};
@@ -225,35 +225,8 @@ fn grbl_auto_connect() {
 }
 
 fn main() {
-    //TODO: Use subcommands to tidy up input parsing
-    let matches = App::new("G-Code Streamer")
-                    .version(RELEASE_VERSION)
-                    .arg(Arg::with_name("grbl-auto-connect")
-                        .long("grbl-auto-connect")
-                        .help("Enables auto-connect for GRBL controllers (sends $X to unlock)"))
-                    .arg(Arg::with_name("input")
-                        .short("i")
-                        .long("input")
-                        .value_name("FILE")
-                        .help("Sets the input g-code file (required)")
-                        .takes_value(true))
-                    .arg(Arg::with_name("port")
-                        .short("p")
-                        .long("port")
-                        .value_name("PORT")
-                        .help("Sets the serial port the application will stream to")
-                        .takes_value(true))
-                    .arg(Arg::with_name("speed")
-                        .short("s")
-                        .long("speed")
-                        .value_name("BAUD RATE")
-                        .help("Sets the serial port baud rate")
-                        .takes_value(true))
-                    .arg(Arg::with_name("list-ports")
-                        .short("l")
-                        .long("list-ports")
-                        .help("List available serial ports"))
-                    .get_matches();
+    let yaml = load_yaml!("cli.yml");
+    let matches = App::from_yaml(yaml).get_matches();
 
     
     if matches.is_present("list-ports") {
@@ -263,34 +236,12 @@ fn main() {
             grbl_auto_connect();
         }
 
-        if let Some(input_file) = matches.value_of("input") {
+        if let Some(sub_matches) = matches.subcommand_matches("stream") {
             //TODO: poor handling of input, improve
-            let port = matches.value_of("port").expect("no port specified");
-            let speed = matches.value_of("speed").expect("no speed specified").parse::<u32>().unwrap();
+            let input_file = sub_matches.value_of("input").expect("no input file");
+            let port = sub_matches.value_of("port").expect("no port specified");
+            let speed = sub_matches.value_of("speed").expect("no speed specified").parse::<u32>().unwrap();
             stream_file(input_file, port, speed);     
         }
     }
-    // list_ports();
-    // stream_file("./test/test_square.gcode", "/dev/ttyACM0", 115200);
-    // let file_path = String::from("./test/test_square.gcode");
-    // /* File opened OK*/
-    // if let Ok(mut f_iter) = open_file(file_path){
-    //     loop{
-    //         // let fetched_lines = fetch_lines(&mut f_iter, 10);
-    //         // for line in fetched_lines {
-    //         //     println!("{}", line);
-    //         // }
-    //         if let Some(fetched_line) = fetch_command(&mut f_iter){
-    //             output_string(fetched_line);
-    //         }else{
-    //             println!("Reached EOF");
-    //             break;
-    //         }
-    //     }
-    // }
-
-    // open_port("/tmp/ttyS0", 115200);
-    // list_ports();
-
-    // let mut s = fetch_lines(&mut f, 10);
 }
