@@ -111,7 +111,7 @@ fn open_port(port: &str, port_speed: u32) -> io::BufReader<Box<dyn serialport::S
     io::BufReader::new(port)
 }
 
-fn stream_file(filename: &str, port: &str, port_speed: u32) {
+fn stream_file(filename: &str, serial_port: &mut io::BufReader<Box<dyn serialport::SerialPort>>) {
     if let Ok(mut f_iter) = open_file(filename){
         
         let mut serial_buf: Vec<u8> = vec![0; 32];
@@ -120,7 +120,7 @@ fn stream_file(filename: &str, port: &str, port_speed: u32) {
         // .timeout(Duration::from_millis(10))
         // .open().expect("Failed to open port");
 
-        let mut port = open_port(port, port_speed);
+        // let mut port = open_port(port, port_speed);
 
         loop{
             if let Some(fetched_line) = fetch_command(&mut f_iter){
@@ -128,8 +128,8 @@ fn stream_file(filename: &str, port: &str, port_speed: u32) {
                 println!("Send: {}", fetched_line);
                 let mut output = fetched_line;
                 output.push('\n');
-                port.get_mut().write(output.as_bytes()).expect("Write failed!");
-                port.get_mut().flush();
+                serial_port.get_mut().write(output.as_bytes()).expect("Write failed!");
+                serial_port.get_mut().flush();
             }else{
                 println!("Reached EOF");
                 break;
@@ -139,7 +139,7 @@ fn stream_file(filename: &str, port: &str, port_speed: u32) {
             let mut line = String::new();
             loop{
                 // let ret = match port.read_line(serial_buf.as_mut_slice()){
-                let ret = match port.read_line(&mut line) {
+                let ret = match serial_port.read_line(&mut line) {
                 // let ret = match port.read_to_end(&mut serial_buf){
                     Ok(t) => check_input_string(&line),
                     Err(ref e) if e.kind() == io::ErrorKind::TimedOut => SerialReturnType::None,
@@ -220,28 +220,36 @@ fn output_string(line: String){
     println!("{}", line);
 }
 
-fn grbl_auto_connect() {
+fn grbl_auto_connect(serial_port: &mut io::BufReader<Box<dyn serialport::SerialPort>>) {
     println!("GRBL auto-connect");
+    
+    let mut output = "$X\n";
+
+    println!("Send: {}", output);
+    
+    serial_port.get_mut().write(output.as_bytes()).expect("Write failed!");
+    serial_port.get_mut().flush();
 }
 
 fn main() {
     let yaml = load_yaml!("cli.yml");
     let matches = App::from_yaml(yaml).get_matches();
 
-    
-    if matches.is_present("list-ports") {
-        list_ports();
-    } else {
-        if matches.is_present("grbl-auto-connect") {
-            grbl_auto_connect();
+    if let Some(sub_matches) = matches.subcommand_matches("list-ports") {
+        list_ports()
+    }
+    else if let Some(sub_matches) = matches.subcommand_matches("stream") {
+        let input_file = sub_matches.value_of("input").expect("no input file");
+        let port = sub_matches.value_of("port").expect("no port specified");
+        let speed = sub_matches.value_of("speed").expect("no speed specified").parse::<u32>().unwrap();
+
+        // initialize serial port
+        let mut serial_port = open_port(port, speed);
+        // Run GRBL Auto Connect if required
+        if sub_matches.is_present("grbl-auto-connect") {
+            grbl_auto_connect(&mut serial_port);
         }
 
-        if let Some(sub_matches) = matches.subcommand_matches("stream") {
-            //TODO: poor handling of input, improve
-            let input_file = sub_matches.value_of("input").expect("no input file");
-            let port = sub_matches.value_of("port").expect("no port specified");
-            let speed = sub_matches.value_of("speed").expect("no speed specified").parse::<u32>().unwrap();
-            stream_file(input_file, port, speed);     
-        }
+        stream_file(input_file, &mut serial_port);
     }
 }

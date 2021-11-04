@@ -5,6 +5,12 @@ This application is designed to stream a G-Code file to a serial port.
 
 To run the base application, first build using:
 
+`./build.sh`
+
+This will produce an executable named `gcode-streamer` in the project directory.
+
+Alternatively one can manually call:
+
 `cargo build --release`
 
 This will produce an executable in the following directory:
@@ -18,15 +24,15 @@ This application makes use of the `clap` crate and the useful help messages gene
 
 To see the available options, run
 
-`gcode-streamer --help`
+`./gcode-streamer --help`
 
 For more information about a particular subcommand run
 
-`gcode-streamer <SUBCOMMAND> --help`
+`./gcode-streamer <SUBCOMMAND> --help`
 
 ### **Streaming**
 The `stream` subcommand allows a user to stream an input G-Code file to a given output.
 
 Syntax is as follows:
 
-`gcode-streamer stream --input <FILE> --port <PORT> --speed <SPEED>`
+`./gcode-streamer stream --input <FILE> --port <PORT> --speed <SPEED>`
