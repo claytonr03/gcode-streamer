@@ -28,6 +28,19 @@ subcommands:
             long: speed
             short: s
             takes_value: true
+        - pre:
+            help: Set the pre-process g-code file
+            required: false
+            value_name: FILE
+            long: pre
+            takes_value: true
+        - post:
+            help: Set the post-process g-code file
+            required: false
+            value_name: FILE
+            long: post
+            takes_value: true
+
         - grbl-auto-connect:
             long: grbl-auto-connect
             help: enables the GRBL auto connect feature to unlock the machine at startup (DANGER)

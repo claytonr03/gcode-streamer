@@ -250,6 +250,18 @@ fn main() {
             grbl_auto_connect(&mut serial_port);
         }
 
+        // Stream pre-process GCODE file
+        if let Some(pre_file) = sub_matches.value_of("pre") {
+            println!("Sending pre-process file");
+            stream_file(pre_file, &mut serial_port);
+        }
+        // Stream the input GCODE file
         stream_file(input_file, &mut serial_port);
+
+        // Stream post-process GCODE file
+        if let Some(post_file) = sub_matches.value_of("post") {
+            println!("Sending post-process file");
+            stream_file(post_file, &mut serial_port);
+        }
     }
 }
