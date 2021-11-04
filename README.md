@@ -36,3 +36,12 @@ The `stream` subcommand allows a user to stream an input G-Code file to a given 
 Syntax is as follows:
 
 `./gcode-streamer stream --input <FILE> --port <PORT> --speed <SPEED>`
+
+#### **Pre and Post Process**
+The `stream` subcommand allows a user to optionally enter two additional G-Code files - one for pre-processing (will run prior to the main input file), and one for post-processing (will run after the main input file).
+
+These are given to the `stream` sub command with the following two options:
+
+`--pre <FILE>`
+
+`--post <FILE>`
